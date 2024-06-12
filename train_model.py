@@ -60,12 +60,10 @@ class char_accuracy(keras.metrics.Metric):
 
 
 class TrainModel(CNN):
-    def __init__(self, img_path, char_set, model_save_dir, cycle_stop, acc_stop, cycle_save,
-                 image_suffix, batch_size, dropout_rate, verify=False):
+    def __init__(self, img_path, char_set, model_save_dir, epochs, image_suffix, batch_size, dropout_rate,
+                 verify=False):
         # 训练相关参数
-        self.cycle_stop = cycle_stop
-        self.acc_stop = acc_stop
-        self.cycle_save = cycle_save
+        self.epochs = epochs
         self.batch_size = batch_size
 
         self.image_suffix = image_suffix
@@ -77,13 +75,6 @@ class TrainModel(CNN):
         # 校验格式
         if verify:
             self.confirm_image_suffix()
-        # 打乱文件顺序
-        random.seed(time.time())
-        random.shuffle(self.images_list)
-
-        # 验证集文件
-        # self.verify_img_path = verify_img_path
-        # self.verify_images_list = os.listdir(verify_img_path)
 
         # 获得图片宽高和字符长度基本信息
         label, captcha_array = self.gen_captcha_text_image(img_path, self.images_list[0])
@@ -105,12 +96,6 @@ class TrainModel(CNN):
         print("-->图片尺寸: {} X {}".format(image_height, image_width))
         print("-->验证码长度: {}".format(self.max_captcha))
         print("-->验证码共{}类 {}".format(self.char_set_len, char_set))
-
-        # test model input and output
-        # print(">>> Start model test")
-        # batch_x, batch_y = self.get_batch(0, size=100)
-        # print(">>> input batch images shape: {}".format(batch_x.shape))
-        # print(">>> input batch labels shape: {}".format(batch_y.shape))
 
     @staticmethod
     def gen_captcha_text_image(img_path, img_name):
@@ -135,10 +120,11 @@ class TrainModel(CNN):
         for i, img_name in enumerate(self.images_list):
             label, image_array = self.gen_captcha_text_image(self.img_path, img_name)
             image_array = tf.image.rgb_to_grayscale(image_array)  # 灰度化图片
-            data = image_array / 255.0  # flatten 转为一维
+            data = image_array / 255.0  # 归一化
             batch_x[i, :] = tf.reshape(data, (self.image_height, self.image_width, 1))
             batch_y[i, :] = self.text2vec(label)  # 生成 oneHot
 
+        # 分割训练集/测试集
         x_train, x_val, y_train, y_val = train_test_split(batch_x, batch_y, test_size=0.2)
 
         return x_train, x_val, y_train, y_val
@@ -166,7 +152,8 @@ class TrainModel(CNN):
         checkpoint = ModelCheckpoint(filepath=self.model_save_dir + 'model.keras', verbose=1, save_best_only=True)
 
         # 模型训练及评估
-        train_model.fit(x_train, y_train, batch_size=32, epochs=10, validation_data=(x_val, y_val),
+        train_model.fit(x_train, y_train, batch_size=self.batch_size, epochs=self.epochs,
+                        validation_data=(x_val, y_val),
                         callbacks=[checkpoint])
 
 
@@ -177,30 +164,20 @@ def main():
 
     image_dir = sample_conf["image_dir"]
     model_save_dir = sample_conf["model_save_dir"]
-    cycle_stop = sample_conf["cycle_stop"]
-    acc_stop = sample_conf["acc_stop"]
-    cycle_save = sample_conf["cycle_save"]
+    epochs = sample_conf["epochs"]
     enable_gpu = sample_conf["enable_gpu"]
     image_suffix = sample_conf['image_suffix']
-    use_labels_json_file = sample_conf['use_labels_json_file']
     batch_size = sample_conf['batch_size']
     dropout_rate = sample_conf['dropout_rate']
-
-    if use_labels_json_file:
-        with open("tools/labels.json", "r") as f:
-            char_set = f.read().strip()
-    else:
-        char_set = sample_conf["char_set"]
+    char_set = sample_conf["char_set"]
 
     if not enable_gpu:
         # 设置以下环境变量可开启CPU识别
         os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
         os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
-    tm = TrainModel(image_dir, char_set, model_save_dir, cycle_stop, acc_stop, cycle_save,
-                    image_suffix, batch_size, dropout_rate, verify=False)
+    tm = TrainModel(image_dir, char_set, model_save_dir, epochs, image_suffix, batch_size, dropout_rate, verify=False)
     tm.train_cnn()  # 开始训练模型
-    # tm.recognize_captcha()  # 识别图片示例
 
 
 if __name__ == '__main__':
