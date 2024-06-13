@@ -10,6 +10,7 @@ import tensorflow as tf
 from PIL import Image
 from tensorflow.keras.callbacks import ModelCheckpoint
 from sklearn.model_selection import train_test_split
+from matplotlib import pyplot as plt
 
 from cnnlib.network import CNN
 
@@ -112,16 +113,19 @@ class TrainModel(CNN):
         captcha_array = tf.keras.utils.img_to_array(captcha_image)  # 向量化
         return label, captcha_array
 
-    def get_data(self):
+    def data_prepare(self, self_model):
         size = len(self.images_list)
-        batch_x = np.zeros([size, self.image_height, self.image_width, 1])  # 初始化
+        batch_x = np.zeros([size, self.image_height, self.image_width, 3])  # 初始化
         batch_y = np.zeros([size, self.max_captcha * self.char_set_len])  # 初始化
 
         for i, img_name in enumerate(self.images_list):
             label, image_array = self.gen_captcha_text_image(self.img_path, img_name)
-            image_array = tf.image.rgb_to_grayscale(image_array)  # 灰度化图片
-            data = image_array / 255.0  # 归一化
-            batch_x[i, :] = tf.reshape(data, (self.image_height, self.image_width, 1))
+            # image_array = tf.image.rgb_to_grayscale(image_array)  # 灰度化图片
+            data = image_array
+            if self_model:
+                data = data / 255.0  # 归一化
+            batch_x[i, :] = data
+            # batch_x[i, :] = image_array
             batch_y[i, :] = self.text2vec(label)  # 生成 oneHot
 
         # 分割训练集/测试集
@@ -141,7 +145,7 @@ class TrainModel(CNN):
 
     def train_cnn(self):
         # 数据处理
-        x_train, x_val, y_train, y_val = self.get_data()
+        x_train, x_val, y_train, y_val = self.data_prepare(True)
 
         train_model = self.model()
         optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
@@ -152,13 +156,24 @@ class TrainModel(CNN):
         checkpoint = ModelCheckpoint(filepath=self.model_save_dir + 'model.keras', verbose=1, save_best_only=True)
 
         # 模型训练及评估
-        train_model.fit(x_train, y_train, batch_size=self.batch_size, epochs=self.epochs,
-                        validation_data=(x_val, y_val),
-                        callbacks=[checkpoint])
+        history = train_model.fit(x_train, y_train, batch_size=self.batch_size, epochs=self.epochs,
+                                  validation_data=(x_val, y_val),
+                                  callbacks=[checkpoint])
+        print_history(history)
+
+
+# 绘图函数
+def print_history(history):
+    # 绘制训练 & 验证的准确率值
+    plt.plot(history.history['char_accuracy'])
+    plt.plot(history.history['val_char_accuracy'])
+    plt.title('Model accuracy')
+    plt.xlabel('Epoch')
+    plt.legend(['Train_acc', 'Val_acc'])
+    plt.show()
 
 
 def main():
-    keras.saving.get_custom_objects().clear()
     with open("conf/sample_config.json", "r") as f:
         sample_conf = json.load(f)
 

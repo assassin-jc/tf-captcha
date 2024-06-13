@@ -16,8 +16,8 @@ def main(img_path):
     # 将图片转换为数组
     array = tf.keras.utils.img_to_array(captcha_image)
     # 转为黑白
-    data = tf.image.rgb_to_grayscale(array) / 255.0
-    data = np.reshape(data, (1, 60, 120, 1))
+    # data = tf.image.rgb_to_grayscale(array) / 255.0
+    data = np.reshape(array, (1, 60, 120, 3))
 
     # model = tf.keras.models.load_model("model/model.keras" )
     model = keras.models.load_model(
