@@ -83,22 +83,18 @@ def train_cnn():
         nn.BatchNorm2d(32),
         nn.LeakyReLU(),  # 激活函数类
         nn.MaxPool2d(kernel_size=2),
-        nn.Dropout(p=0.25),
         nn.Conv2d(32, 64, (3, 3), 1, "same"),
         nn.BatchNorm2d(64),
         nn.LeakyReLU(),  # 激活函数类
         nn.MaxPool2d(kernel_size=2),
-        nn.Dropout(p=0.25),
         nn.Conv2d(64, 128, (3, 3), 1, "same"),
         nn.BatchNorm2d(128),
         nn.LeakyReLU(),  # 激活函数类
         nn.MaxPool2d(kernel_size=2),
-        nn.Dropout(p=0.25),
         nn.Conv2d(128, 256, (3, 3), 1, "same"),
         nn.BatchNorm2d(256),
         nn.LeakyReLU(),  # 激活函数类
         nn.MaxPool2d(kernel_size=2),
-        nn.Dropout(p=0.25),
         Flatten(),
         nn.Linear(3 * 7 * 256, 1024),
         nn.ReLU(),

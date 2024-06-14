@@ -145,9 +145,9 @@ class TrainModel(CNN):
 
     def train_cnn(self):
         # 数据处理
-        x_train, x_val, y_train, y_val = self.data_prepare(True)
+        x_train, x_val, y_train, y_val = self.data_prepare(False)
 
-        train_model = self.model()
+        train_model = self.model_efficientNet()
         optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
         # 编译模型，Adam 优化器，多分类交叉熵损失函数，准确度评估
         train_model.compile(optimizer=optimizer, loss="binary_crossentropy",

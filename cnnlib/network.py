@@ -110,8 +110,9 @@ class CNN(object):
     # EfficientNet
     def model_efficientNet(self):
         # Pretrained backbone
+        # efficientnetv2_s_imagenet
         # efficientnetv2_b2_imagenet
-        backbone = keras_cv.models.EfficientNetV2Backbone.from_preset('efficientnetv2_s_imagenet')
+        backbone = keras_cv.models.EfficientNetV2Backbone.from_preset('efficientnetv2_b2_imagenet')
         model = keras.Sequential(
             [
                 keras.layers.Input(shape=(None, None, 3)),
